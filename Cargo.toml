@@ -1,0 +1,15 @@
+[package]
+name = "recoreco"
+version = "0.0.1"
+authors = ["Sebastian Schelter <ssc [AT] apache.org>"]
+
+[[bin]]
+name = "recoreco"
+path = "src/bin/batch_recommend.rs"
+
+[dependencies]
+csv = "0.15.0"
+fnv = "1.0.5"
+rand = "0.3.13"
+num_cpus = "1.0"
+scoped-pool = "1"
