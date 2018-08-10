@@ -2,3 +2,5 @@
 /target
 **/*.rs.bk
 .idea/
+notes.txt
+indicators.json

@@ -1,41 +1,64 @@
+/**
+ * RecoReco
+ * Copyright (C) 2018 Sebastian Schelter
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+
 extern crate rand;
 extern crate fnv;
 extern crate scoped_pool;
 
+#[macro_use] extern crate serde_derive;
+#[macro_use] extern crate serde_json;
+
 use std::collections::BinaryHeap;
 use std::sync::Mutex;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use rand::Rng;
-use fnv::{FnvHashMap, FnvHashSet};
+use fnv::FnvHashSet;
 use scoped_pool::Pool;
 
 mod llr;
-pub mod utils;
-mod types;
+pub mod io;
+pub mod types;
 pub mod stats;
-pub mod recommend;
 
 use llr::ScoredItem;
 use types::{DenseVector, SparseVector, SparseMatrix, SparseBinaryMatrix};
+use stats::DataDictionary;
 
-
-
-pub fn indicators(
-    interactions: &Vec<(u32, u32)>,
-    num_users: usize, num_items: usize,
+pub fn indicators<T>(
+    interactions: T,
+    data_dict: &DataDictionary,
     pool_size: usize,
     k: usize,
-) -> SparseBinaryMatrix {
+) -> SparseBinaryMatrix
+where T: Iterator<Item=(String,String)> {
+
+    let num_items = data_dict.num_items();
+    let num_users = data_dict.num_users();
 
     let pool = Pool::new(pool_size);
 
     const F_MAX: u32 = 500;
     const K_MAX: u32 = 500;
+    const MAX_COOCCURRENCES: usize = (F_MAX * F_MAX) as usize;
 
-    // larger of both values needs to be added
-    const MAX_COOCCURRENCES: usize = (F_MAX * K_MAX + K_MAX) as usize;
-    let pre_computed_logarithms: Vec<f64> = llr::logarithms_table(MAX_COOCCURRENCES);
+    //TODO this could be constant size
+    let precomputed_logarithms: Vec<f64> = llr::logarithms_table(MAX_COOCCURRENCES);
 
     // Downsampled history matrix A
     let mut user_non_sampled_interaction_counts = types::new_dense_vector(num_users);
@@ -44,8 +67,7 @@ pub fn indicators(
     let mut samples_of_a: Vec<Vec<u32>> = vec![Vec::with_capacity(10); num_users];
 
     // Cooccurrence matrix C
-    let mut c: SparseMatrix =
-        vec![FnvHashMap::with_capacity_and_hasher(10, Default::default()); num_items];
+    let mut c: SparseMatrix = types::new_sparse_matrix(num_items);
     let mut row_sums_of_c = types::new_dense_vector(num_items);
 
     // Indicator matrix I
@@ -63,7 +85,10 @@ pub fn indicators(
 
     let mut items_to_rescore = FnvHashSet::default();
 
-    for &(user, item) in interactions.iter() {
+    for (user_str, item_str) in interactions {
+
+        let item = *data_dict.item_index(&item_str);
+        let user = *data_dict.user_index(&user_str);
 
         let item_idx = item as usize;
         let user_idx = user as usize;
@@ -77,24 +102,24 @@ pub fn indicators(
 
             if user_interaction_counts[user_idx] < K_MAX {
 
-              for other_item in user_history.iter() {
+                for other_item in user_history.iter() {
 
-                  *c[item_idx].entry(*other_item).or_insert(0) += 1;
-                  *c[*other_item as usize].entry(item).or_insert(0) += 1;
+                    *c[item_idx].entry(*other_item).or_insert(0) += 1;
+                    *c[*other_item as usize].entry(item).or_insert(0) += 1;
 
-                  row_sums_of_c[*other_item as usize] += 1;
-                  items_to_rescore.insert(*other_item);
-              }
+                    row_sums_of_c[*other_item as usize] += 1;
+                    items_to_rescore.insert(*other_item);
+                }
 
-              row_sums_of_c[item_idx] += num_items_in_user_history as u32;
-              num_cooccurrences_observed += 2 * num_items_in_user_history as u64;
+                row_sums_of_c[item_idx] += num_items_in_user_history as u32;
+                num_cooccurrences_observed += 2 * num_items_in_user_history as u64;
 
-              user_history.push(item);
+                user_history.push(item);
 
-              user_interaction_counts[user_idx] += 1;
-              item_interaction_counts[item_idx] += 1;
+                user_interaction_counts[user_idx] += 1;
+                item_interaction_counts[item_idx] += 1;
 
-              items_to_rescore.insert(item);
+                items_to_rescore.insert(item);
 
             } else {
 
@@ -142,7 +167,7 @@ pub fn indicators(
             let row = &c[*item as usize];
             let indicators_for_item = &indicators[*item as usize];
             let reference_to_row_sums_of_c = &row_sums_of_c;
-            let reference_to_pre_computed_logarithms = &pre_computed_logarithms;
+            let reference_to_pre_computed_logarithms = &precomputed_logarithms;
 
             scope.execute(move|| {
                 rescore(
@@ -158,23 +183,28 @@ pub fn indicators(
         }
     });
 
-    let duration_for_batch = utils::to_millis(batch_start.elapsed());
+    let duration_for_batch = to_millis(batch_start.elapsed());
     println!("{} cooccurrences observed, {}ms training time, {} items rescored",
         num_cooccurrences_observed, duration_for_batch, items_to_rescore.len());
 
     indicators.into_iter()
         .map(|entry| {
             let mut heap = entry.lock().unwrap();
-            let mut items = FnvHashSet::with_capacity_and_hasher(heap.len(), Default::default());
-            for scored_item in heap.drain() {
-                items.insert(scored_item.item);
-            }
+
+
+            let items: FnvHashSet<u32> = heap.drain()
+                .map(|scored_item| scored_item.item)
+                // Checked that size_hint() gives correct bounds
+                .collect();
 
             items
         })
         .collect()
 }
 
+fn to_millis(duration: Duration) -> u64 {
+    (duration.as_secs() * 1_000) + (duration.subsec_nanos() / 1_000_000) as u64
+}
 
 fn rescore(
     item: u32,
@@ -183,7 +213,7 @@ fn rescore(
     num_cooccurrences_observed: &u64,
     indicators: &Mutex<BinaryHeap<ScoredItem>>,
     k: usize,
-    logarithms_table: &Vec<f64>,
+    logarithms_table: &[f64],
 ) {
 
     let mut indicators_for_item = indicators.lock().unwrap();

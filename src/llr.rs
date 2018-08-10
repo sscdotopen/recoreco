@@ -1,13 +1,32 @@
+/**
+ * RecoReco
+ * Copyright (C) 2018 Sebastian Schelter
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+
 use std::cmp::Ordering;
 
-
+/// Result type used to find the top-k anomalous items per item via a binary heap
 #[derive(PartialEq,Debug)]
 pub struct ScoredItem {
     pub item: u32,
     pub score: f64,
 }
 
-// ordering for our max heap
+/// Ordering for our max-heap, not that we must use a special implementation here as there is no
+/// total order on floating point numbers.
 fn cmp_reverse(scored_item_a: &ScoredItem, scored_item_b: &ScoredItem) -> Ordering {
     match scored_item_a.score.partial_cmp(&scored_item_b.score) {
         Some(Ordering::Less) => Ordering::Greater,
@@ -27,6 +46,7 @@ impl PartialOrd for ScoredItem {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> { Some(cmp_reverse(self, other)) }
 }
 
+/// Precompute a table of logarithms which will be used for lookups later
 pub fn logarithms_table(max_arg: usize) -> Vec<f64> {
 
     let mut logarithms: Vec<f64> = Vec::with_capacity(max_arg);
@@ -39,13 +59,19 @@ pub fn logarithms_table(max_arg: usize) -> Vec<f64> {
     logarithms
 }
 
-/* https://github.com/apache/mahout/blob/08e02602e947ff945b9bd73ab5f0b45863df3e53/
-   math/src/main/java/org/apache/mahout/math/stats/LogLikelihood.java  */
+/// Highly optimized implementation of the loglikelihood-based G²-test. We enforce inlining of the
+/// logarithms computation, apply manual common subexpression elimination and leverage a precomputed
+/// logarithms table for a given range.
+///
+/// The following url gives some details on the original implementation:
+///
+/// https://github.com/apache/mahout/blob/08e02602e947ff945b9bd73ab5f0b45863df3e53/math/src/main/java/org/apache/mahout/math/stats/LogLikelihood.java
+///
+/// We would also like to thank Frank McSherry for his help in optimizing this piece of code:
+/// https://www.reddit.com/r/rust/comments/6qmnbo/why_is_my_scala_program_twice_as_fast_as_my_rust/dl0x1bj/
+///
 #[inline(always)]
-pub fn log_likelihood_ratio(k11: u64, k12: u64, k21: u64, k22: u64, logarithms: &Vec<f64>) -> f64 {
-
-    /* Thank you Frank - https://www.reddit.com/r/rust/comments/6qmnbo/
-       why_is_my_scala_program_twice_as_fast_as_my_rust/dl0x1bj/ */
+pub fn log_likelihood_ratio(k11: u64, k12: u64, k21: u64, k22: u64, logarithms: &[f64]) -> f64 {
 
     let xlx_all = x_logx(k11 + k12 + k21 + k22);
 
@@ -61,7 +87,7 @@ pub fn log_likelihood_ratio(k11: u64, k12: u64, k21: u64, k22: u64, logarithms: 
         x_times_logx(k21, log_k21) - x_logx(k22);
 
     if row_entropy + column_entropy < matrix_entropy {
-        0.0 // round off error
+        0.0 // Round off error
     } else {
         2.0 * (row_entropy + column_entropy - matrix_entropy)
     }
@@ -89,7 +115,7 @@ mod tests {
     #[test]
     fn llr() {
         // Some cases from http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.14.5962
-        let logs = llr::logarithms_table(500 * 500 + 500);
+        let logs = llr::logarithms_table(500 * 500);
 
         assert!(close_enough_to(llr::log_likelihood_ratio(110, 2442, 111, 29114, &logs), 270.72));
         assert!(close_enough_to(llr::log_likelihood_ratio(29, 13, 123, 31612, &logs), 263.90));
@@ -115,7 +141,7 @@ mod tests {
 
         let mut heap = BinaryHeap::with_capacity(K);
 
-        for scored_item in items.iter() {
+        for scored_item in items.into_iter() {
             if heap.len() < K {
                 heap.push(scored_item);
             } else {
