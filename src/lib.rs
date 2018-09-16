@@ -57,25 +57,23 @@ where T: Iterator<Item=(String,String)> {
     const K_MAX: u32 = 500;
     const MAX_COOCCURRENCES: usize = (F_MAX * F_MAX) as usize;
 
-    //TODO this could be constant size
+    // Precompute most logarithms
     let precomputed_logarithms: Vec<f64> = llr::logarithms_table(MAX_COOCCURRENCES);
 
     // Downsampled history matrix A
     let mut user_non_sampled_interaction_counts = types::new_dense_vector(num_users);
     let mut user_interaction_counts = types::new_dense_vector(num_users);
     let mut item_interaction_counts = types::new_dense_vector(num_items);
-    let mut samples_of_a: Vec<Vec<u32>> = vec![Vec::with_capacity(10); num_users];
+    let mut samples_of_a: Vec<Vec<u32>> = vec![Vec::new(); num_users];
 
     // Cooccurrence matrix C
     let mut c: SparseMatrix = types::new_sparse_matrix(num_items);
     let mut row_sums_of_c = types::new_dense_vector(num_items);
 
     // Indicator matrix I
-    let mut indicators: Vec<Mutex<BinaryHeap<ScoredItem>>> = Vec::with_capacity(num_items);
-
-    for _ in 0..num_items {
-        indicators.push(Mutex::new(BinaryHeap::with_capacity(k)));
-    }
+    let indicators: Vec<Mutex<BinaryHeap<ScoredItem>>> = (0..num_items)
+        .map(|_| Mutex::new(BinaryHeap::with_capacity(k)))
+        .collect();
 
     let mut num_cooccurrences_observed: u64 = 0;
 
@@ -169,7 +167,7 @@ where T: Iterator<Item=(String,String)> {
             let reference_to_row_sums_of_c = &row_sums_of_c;
             let reference_to_pre_computed_logarithms = &precomputed_logarithms;
 
-            scope.execute(move|| {
+            scope.execute(move || {
                 rescore(
                     *item,
                     row,
@@ -184,18 +182,22 @@ where T: Iterator<Item=(String,String)> {
     });
 
     let duration_for_batch = to_millis(batch_start.elapsed());
-    println!("{} cooccurrences observed, {}ms training time, {} items rescored",
-        num_cooccurrences_observed, duration_for_batch, items_to_rescore.len());
+    println!(
+        "{} cooccurrences observed, {}ms training time, {} items rescored",
+        num_cooccurrences_observed,
+        duration_for_batch,
+        items_to_rescore.len(),
+    );
 
-    indicators.into_iter()
+    indicators
+        .into_iter()
         .map(|entry| {
             let mut heap = entry.lock().unwrap();
 
-
-            let items: FnvHashSet<u32> = heap.drain()
+            let items: FnvHashSet<u32> = heap
+                .drain()
                 .map(|scored_item| scored_item.item)
-                // Checked that size_hint() gives correct bounds
-                .collect();
+                .collect(); // Checked that size_hint() gives correct bounds
 
             items
         })

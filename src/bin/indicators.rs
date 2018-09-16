@@ -48,7 +48,7 @@ fn main() {
         Err(failure) => {
             let hint = failure.to_string();
             return print_usage_and_exit(&program, opts, Some(&hint))
-        }
+        },
     };
 
     if matches.opt_present("h") {
@@ -56,8 +56,11 @@ fn main() {
     }
 
     if !matches.opt_present("i") {
-        return print_usage_and_exit(&program, opts,
-            Some("Please specify an inputfile via --inputfile."));
+        return print_usage_and_exit(
+            &program,
+            opts,
+            Some("Please specify an inputfile via --inputfile."),
+        );
     }
 
     let interactions_path = matches.opt_str("i").unwrap();
@@ -68,7 +71,7 @@ fn main() {
         Err(failure) => {
             let hint = format!("Problem with option 'k': {}", failure.to_string());
             return print_usage_and_exit(&program, opts, Some(&hint))
-        }
+        },
     };
 
     compute_indicators(&interactions_path, k, indicators_path).unwrap();

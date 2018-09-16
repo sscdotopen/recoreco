@@ -29,8 +29,8 @@ use fnv::FnvHashMap;
 /// consecutive integer ids. We therefore keep track of the string identifiers of users and items
 /// as well as the overall number of interactions
 pub struct DataDictionary {
-    user_dict: FnvHashMap<String,u32>,
-    item_dict: FnvHashMap<String,u32>,
+    user_dict: FnvHashMap<String, u32>,
+    item_dict: FnvHashMap<String, u32>,
     num_interactions: u64,
 }
 
@@ -61,13 +61,13 @@ impl DataDictionary {
     /// user-item interactions. We assume that the first string in the tuple identifies a user and
     /// the second string identifies an item
     fn from_iter<T>(iter: T) -> Self
-        where T: Iterator<Item=(String,String)>
+        where T: Iterator<Item = (String, String)>
     {
         let mut user_index: u32 = 0;
-        let mut user_dict: FnvHashMap<String,u32> = FnvHashMap::default();
+        let mut user_dict: FnvHashMap<String, u32> = FnvHashMap::default();
 
         let mut item_index: u32 = 0;
-        let mut item_dict: FnvHashMap<String,u32> = FnvHashMap::default();
+        let mut item_dict: FnvHashMap<String, u32> = FnvHashMap::default();
 
         let mut num_interactions: u64 = 0;
 
@@ -104,7 +104,7 @@ impl <R> From<csv::Reader<R>> for DataDictionary
 }
 
 pub struct Renaming {
-    item_names: FnvHashMap<u32,String>,
+    item_names: FnvHashMap<u32, String>,
 }
 
 impl Renaming {
@@ -118,7 +118,8 @@ impl Renaming {
 impl From<DataDictionary> for Renaming {
 
     fn from(data_dict: DataDictionary) -> Self {
-        let item_names: FnvHashMap<u32,String> = data_dict.item_dict.into_iter()
+        let item_names: FnvHashMap<u32, String> = data_dict.item_dict
+            .into_iter()
             .map(|(name, item_id)| (item_id, name))
             .collect(); // Checked that size_hint() gives correct bounds
 
@@ -142,7 +143,8 @@ mod tests {
             ("user_a".to_string(), "item_a".to_string()),
             ("user_a".to_string(), "item_b".to_string()),
             ("user_b".to_string(), "item_b".to_string()),
-            ("user_c".to_string(), "item_a".to_string())];
+            ("user_c".to_string(), "item_a".to_string()),
+        ];
 
         let data_dict = DataDictionary::from_iter(interactions.into_iter());
 
@@ -162,12 +164,14 @@ mod tests {
 
         let user_mapping = vec![
             ("user_a".to_string(), 0),
-            ("user_b".to_string(), 1)];
+            ("user_b".to_string(), 1),
+        ];
 
         let item_mapping = vec![
             ("item_a".to_string(), 0),
             ("item_b".to_string(), 1),
-            ("item_c".to_string(), 2)];
+            ("item_c".to_string(), 2),
+        ];
 
         let user_dict: FnvHashMap<String,u32> = user_mapping.into_iter().collect();
         let item_dict: FnvHashMap<String,u32> = item_mapping.into_iter().collect();

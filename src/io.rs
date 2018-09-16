@@ -79,14 +79,15 @@ pub fn write_indicators(
 
     let mut out: Box<Write> = match indicators_path {
         Some(path) => Box::new(File::create(&Path::new(&path))?),
-        _ => Box::new(stdout())
+        _ => Box::new(stdout()),
     };
 
     for (item_index, indicated_item_indices) in indicators.into_iter().enumerate() {
 
         let for_item = renaming.item_name(item_index as u32);
 
-        let indicated_items: FnvHashSet<&str> = indicated_item_indices.into_iter()
+        let indicated_items: FnvHashSet<&str> = indicated_item_indices
+            .into_iter()
             .map(|item_index| renaming.item_name(*item_index as u32))
             .collect();
 

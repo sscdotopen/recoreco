@@ -22,7 +22,7 @@ use fnv::{FnvHashMap, FnvHashSet};
 
 pub type DenseVector = Vec<u32>;
 
-pub type SparseVector = FnvHashMap<u32,u16>;
+pub type SparseVector = FnvHashMap<u32, u16>;
 pub type SparseMatrix = Vec<SparseVector>;
 
 pub type SparseBinaryMatrix = Vec<FnvHashSet<u32>>;

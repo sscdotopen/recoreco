@@ -49,14 +49,9 @@ impl PartialOrd for ScoredItem {
 /// Precompute a table of logarithms which will be used for lookups later
 pub fn logarithms_table(max_arg: usize) -> Vec<f64> {
 
-    let mut logarithms: Vec<f64> = Vec::with_capacity(max_arg);
-
-    logarithms.push(0.0);
-    for index in 1..max_arg {
-        logarithms.push((index as f64).ln());
-    }
-
-    logarithms
+    (0..max_arg)
+        .map(|index| if index == 0 { 0.0 } else { (index as f64).ln() })
+        .collect()
 }
 
 /// Highly optimized implementation of the loglikelihood-based G²-test. We enforce inlining of the
