@@ -44,7 +44,9 @@ pub fn indicators<T>(
     interactions: T,
     data_dict: &DataDictionary,
     pool_size: usize,
-    k: usize,
+    num_indicators_per_item: usize,
+    f_max: u32,
+    k_max: u32
 ) -> SparseBinaryMatrix
 where T: Iterator<Item=(String,String)> {
 
@@ -53,12 +55,10 @@ where T: Iterator<Item=(String,String)> {
 
     let pool = Pool::new(pool_size);
 
-    const F_MAX: u32 = 500;
-    const K_MAX: u32 = 500;
-    const MAX_COOCCURRENCES: usize = (F_MAX * F_MAX) as usize;
+    let max_cooccurrences = (f_max * f_max) as usize;
 
     // Precompute most logarithms
-    let precomputed_logarithms: Vec<f64> = llr::logarithms_table(MAX_COOCCURRENCES);
+    let precomputed_logarithms: Vec<f64> = llr::logarithms_table(max_cooccurrences);
 
     // Downsampled history matrix A
     let mut user_non_sampled_interaction_counts = types::new_dense_vector(num_users);
@@ -72,7 +72,7 @@ where T: Iterator<Item=(String,String)> {
 
     // Indicator matrix I
     let indicators: Vec<Mutex<BinaryHeap<ScoredItem>>> = (0..num_items)
-        .map(|_| Mutex::new(BinaryHeap::with_capacity(k)))
+        .map(|_| Mutex::new(BinaryHeap::with_capacity(num_indicators_per_item)))
         .collect();
 
     let mut num_cooccurrences_observed: u64 = 0;
@@ -93,12 +93,12 @@ where T: Iterator<Item=(String,String)> {
 
         user_non_sampled_interaction_counts[user_idx] += 1;
 
-        if item_interaction_counts[item_idx] < F_MAX {
+        if item_interaction_counts[item_idx] < f_max {
 
             let mut user_history = samples_of_a.get_mut(user_idx).unwrap();
             let num_items_in_user_history = user_history.len();
 
-            if user_interaction_counts[user_idx] < K_MAX {
+            if user_interaction_counts[user_idx] < k_max {
 
                 for other_item in user_history.iter() {
 
@@ -174,7 +174,7 @@ where T: Iterator<Item=(String,String)> {
                     reference_to_row_sums_of_c,
                     &num_cooccurrences_observed,
                     indicators_for_item,
-                    k,
+                    num_indicators_per_item,
                     reference_to_pre_computed_logarithms,
                 )
             });
@@ -214,7 +214,7 @@ fn rescore(
     row_sums_of_c: &DenseVector,
     num_cooccurrences_observed: &u64,
     indicators: &Mutex<BinaryHeap<ScoredItem>>,
-    k: usize,
+    n: usize,
     logarithms_table: &[f64],
 ) {
 
@@ -233,7 +233,7 @@ fn rescore(
 
             let scored_item = ScoredItem { item: *other_item, score: llr_score };
 
-            if indicators_for_item.len() < k {
+            if indicators_for_item.len() < n {
                 indicators_for_item.push(scored_item);
             } else {
                 let mut top = indicators_for_item.peek_mut().unwrap();

@@ -50,7 +50,13 @@ impl PartialOrd for ScoredItem {
 pub fn logarithms_table(max_arg: usize) -> Vec<f64> {
 
     (0..max_arg)
-        .map(|index| if index == 0 { 0.0 } else { (index as f64).ln() })
+        .map(|index| {
+            if index == 0 {
+                0.0
+            } else {
+                (index as f64).ln()
+            }
+        })
         .collect()
 }
 

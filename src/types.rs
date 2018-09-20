@@ -32,5 +32,5 @@ pub fn new_dense_vector(dimensions: usize) -> DenseVector {
 }
 
 pub fn new_sparse_matrix(num_rows: usize) -> SparseMatrix {
-    vec![FnvHashMap::with_capacity_and_hasher(10, Default::default()); num_rows]
+    vec![FnvHashMap::with_capacity_and_hasher(0, Default::default()); num_rows]
 }

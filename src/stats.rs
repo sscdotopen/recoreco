@@ -109,6 +109,7 @@ pub struct Renaming {
 
 impl Renaming {
 
+    /// Reverse mapping from internal indexes to original item names
     pub fn item_name(&self, item_index: u32) -> &str {
         &self.item_names[&item_index]
     }

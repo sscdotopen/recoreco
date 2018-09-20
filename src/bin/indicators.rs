@@ -39,7 +39,7 @@ fn main() {
         separated by a tab.", "PATH");
     opts.optopt("o", "outputfile", "Output file name (optional, output will be written to stdout \
         by default).", "PATH");
-    opts.optopt("k", "num-indicators", "Number of indicators to compute per item (optional, \
+    opts.optopt("n", "num-indicators", "Number of indicators to compute per item (optional, \
         defaults to 10).", "NUMBER");
     opts.optflag("h", "help", "Print this help menu");
 
@@ -66,10 +66,10 @@ fn main() {
     let interactions_path = matches.opt_str("i").unwrap();
     let indicators_path = matches.opt_str("o");
 
-    let k: usize = match matches.opt_get_default("k", 10) {
+    let k: usize = match matches.opt_get_default("n", 10) {
         Ok(k) => k,
         Err(failure) => {
-            let hint = format!("Problem with option 'k': {}", failure.to_string());
+            let hint = format!("Problem with option 'n': {}", failure.to_string());
             return print_usage_and_exit(&program, opts, Some(&hint))
         },
     };
@@ -93,9 +93,13 @@ fn print_usage_and_exit(
 
 fn compute_indicators(
     interactions_path: &str,
-    k: usize,
+    n: usize,
     indicators_path: Option<String>
 ) -> Result<(), Box<Error>> {
+
+    // We use constants here for the moment, should result in a good runtime/quality ratio.
+    const F_MAX: u32 = 500;
+    const K_MAX: u32 = 500;
 
     println!("Reading {} to compute data statistics (pass 1/2)", interactions_path);
 
@@ -109,7 +113,7 @@ fn compute_indicators(
         data_dict.num_items(),
     );
 
-    println!("Reading {} to compute {} item indicators per item (pass 2/2)", interactions_path, k);
+    println!("Reading {} to compute {} item indicators per item (pass 2/2)", interactions_path, n);
 
     let mut reader_pass_two = io::csv_reader(&interactions_path)?;
     let interactions = io::interactions_from_csv(&mut reader_pass_two);
@@ -118,7 +122,9 @@ fn compute_indicators(
         interactions,
         &data_dict,
         num_cpus::get(),
-        k,
+        n,
+        F_MAX,
+        K_MAX
     );
 
     // Build reverse index, make sure we consume the data dictionary

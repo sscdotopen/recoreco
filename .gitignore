@@ -1,6 +1,8 @@
 *.iml
 /target
-**/*.rs.bk
 .idea/
 notes.txt
-indicators.json
+artists.json
+plays.csv
+lastfm-dataset-360K/
+lastfm-dataset-360K.tar.gz
