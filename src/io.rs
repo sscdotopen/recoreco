@@ -36,9 +36,10 @@ use stats::Renaming;
 /// Reads a CSV input file. We expect NO headers, and a user-item tuple per line
 /// with tab separation.
 pub fn csv_reader(file: &str) -> Result<csv::Reader<std::fs::File>, csv::Error> {
-    let reader = csv::Reader::from_file(file)?
+    let reader = csv::ReaderBuilder::new()
         .has_headers(false)
-        .delimiter('\t' as u8);
+        .delimiter('\t' as u8)
+        .from_path(file)?;
 
     Ok(reader)
 }
@@ -48,7 +49,7 @@ pub fn interactions_from_csv<'a, R>(
 ) -> impl Iterator<Item=(String, String)> + 'a
     where R: std::io::Read {
 
-    reader.decode()
+    reader.deserialize()
         .filter_map(|result| {
             if result.is_ok() {
                 // TODO handle potential errors here?
