@@ -13,19 +13,18 @@ $ cargo install recoreco
 
 ## Quickstart
 
-Recoreco computes highly associated pairs of items (in the sense of _'people who are interested in X are also interested in Y'_) from interactions between users and items. 
+**Recoreco** computes highly associated pairs of items (in the sense of _'people who are interested in X are also interested in Y'_) from interactions between users and items. 
 
-It is a command line tool that expects a **CSV file** as input, where each line consists of  
+It is a command line tool that expects a **CSV file** as input, where each line denotes an interaction between a user and an item and consists of a **user identifier** and an **item identifier** separated by a **tab character**. **Recoco** by default outputs 10 associated items per item (with no particular ranking) in JSON format.
 
 If you would like to learn a bit more about the math behind the approach that **recoreco** is built on, checkout the book on [practical machine learning: innovations in recommendation](https://mapr.com/practical-machine-learning/) and the talk on [real-time puppies and ponies](https://www.slideshare.net/tdunning/realtime-puppies-and-ponies-evolving-indicator-recommendations-in-realtime) from my friend [Ted Dunning](https://twitter.com/ted_dunning). 
 
 
 ## Example: Finding related music artists with recoreco
 
-[http://www.dtic.upf.edu/~ocelma/MusicRecommendationDataset/lastfm-360K.html](http://www.dtic.upf.edu/~ocelma/MusicRecommendationDataset/lastfm-360K.html)
+As an example, we will compute related artists from a [music dataset](http://www.dtic.upf.edu/~ocelma/MusicRecommendationDataset/lastfm-360K.html) crawled from last.fm. The data contains 17,535,655 interactions between 358,868 users and 292,365 bands.
 
-17,535,655 interactions between 358,868 users and 292,365 bands
-
+As a first step, we download the data, uncompress it and have a look at the format:  
 `$ wget http://mtg.upf.edu/static/datasets/last.fm/lastfm-dataset-360K.tar.gz`  
 `$ tar xvfz lastfm-dataset-360K.tar.gz`
 
@@ -38,7 +37,11 @@ $ head lastfm-dataset-360K/usersha1-artmbid-artname-plays.tsv
 00000c289a1829a808ac09c00daf10bc3c4e223b	bbd2ffd7-17f4-4506-8572-c1ea58c3f9a8	juliette & the licks	706
 ```
 
+We need the data to only consist of user and item interactions, so we create a new CSV file which only contains the first column (the hashed userid) and the third column (the artist name) from the original data:
+
 `$ cat lastfm-dataset-360K/usersha1-artmbid-artname-plays.tsv|cut -f1,3 > plays.csv`
+
+Now the data is in the correct format:
 
 ```
 $ head plays.csv 
@@ -49,6 +52,7 @@ $ head plays.csv
 00000c289a1829a808ac09c00daf10bc3c4e223b	juliette & the licks
 ```
 
+We invoke **recoreco** now, point it to the CSV file as input and ask it to write the output to a file called `artists.json`. It will read the CSV file twice, once for computing some statistics of the data, and a second time for computing the actual item-to-item recommendation. Note that **recoreco** is pretty fast, the computation takes less than a minute on my machine.
 
 ```
 $ recoreco --inputfile=plays.csv --outputfile=artists.json
@@ -59,6 +63,9 @@ Reading plays.csv to compute 10 item indicators per item (pass 2/2)
 194996130 cooccurrences observed, 34015ms training time, 292365 items rescored
 Writing indicators...
 ```
+The file `artists.json` now contains the results of the computation. Let's have a look at some artist recommendations using [jq](https://stedolan.github.io/jq/).
+
+Who is strongly associated with _Michael Jackson_?
 
 `$ jq 'select(.for_item=="michael jackson")' artists.json`
 
@@ -80,9 +87,9 @@ Writing indicators...
 }
 ```
 
-[Hot Water Music](https://www.youtube.com/watch?v=UsJ7zlwJnDg)
+One of my favorite bands is [Hot Water Music](https://www.youtube.com/watch?v=UsJ7zlwJnDg), lets see bands that people associate with them:
 
-`jq 'select(.for_item=="hot water music")' artists.json`
+`$ jq 'select(.for_item=="hot water music")' artists.json`
 
 ```json
 {
@@ -103,25 +110,24 @@ Writing indicators...
 
 ```
 
+And finally, we look at artists similar to [Paco de Lucia](https://en.wikipedia.org/wiki/Paco_de_Luc%C3%ADa) in homage to Ted's days of building search engines for Veoh :)
 
-[Black Flag](https://www.youtube.com/watch?v=302oEzSPCqE)
-
-`$ jq 'select(.for_item=="black flag")' artists.json`
+`$ jq 'select(.for_item=="paco de lucia")' artists.json`
 
 ```json
 {
-  "for_item": "black flag",
+  "for_item": "paco de lucia",
   "indicated_items": [
-    "minutemen",
-    "misfits",
-    "circle jerks",
-    "hüsker dü",
-    "dead kennedys",
-    "minor threat",
-    "fugazi",
-    "descendents",
-    "bad brains",
-    "adolescents"
+    "miguel poveda",
+    "cserhati zsuzsa",
+    "ramón veloz",
+    "szarka tamás",
+    "camaron de la isla",
+    "cseh tamás - másik jános",
+    "duquende",
+    "amr diab",
+    "chuck brown & eva cassidy",
+    "keympa"
   ]
 }
 ```
