@@ -37,11 +37,11 @@ $ head lastfm-dataset-360K/usersha1-artmbid-artname-plays.tsv
 00000c289a1829a808ac09c00daf10bc3c4e223b	bbd2ffd7-17f4-4506-8572-c1ea58c3f9a8	juliette & the licks	706
 ```
 
-We need the data to only consist of user and item interactions, so we create a new CSV file which only contains the first column (the hashed userid) and the third column (the artist name) from the original data:
+We need our inputs to only consist of user and item interactions, so we create a new CSV file which only contains the first column (the hashed userid) and the third column (the artist name) from the original data:
 
 `$ cat lastfm-dataset-360K/usersha1-artmbid-artname-plays.tsv|cut -f1,3 > plays.csv`
 
-Now the data is in the correct format:
+Now the CSV file is in the correct format:
 
 ```
 $ head plays.csv 
@@ -52,7 +52,7 @@ $ head plays.csv
 00000c289a1829a808ac09c00daf10bc3c4e223b	juliette & the licks
 ```
 
-We invoke **recoreco** now, point it to the CSV file as input and ask it to write the output to a file called `artists.json`. It will read the CSV file twice, once for computing some statistics of the data, and a second time for computing the actual item-to-item recommendation. Note that **recoreco** is pretty fast, the computation takes less than a minute on my machine.
+Next, we invoke **recoreco**, point it to the CSV file as input and ask it to write the output to a file called `artists.json`. It will read the CSV file twice, once for computing some statistics of the data, and a second time for computing the actual item-to-item recommendations. Note that **recoreco** is pretty fast, the computation takes less than a minute on my machine.
 
 ```
 $ recoreco --inputfile=plays.csv --outputfile=artists.json
@@ -63,7 +63,7 @@ Reading plays.csv to compute 10 item indicators per item (pass 2/2)
 194996130 cooccurrences observed, 34015ms training time, 292365 items rescored
 Writing indicators...
 ```
-The file `artists.json` now contains the results of the computation. Let's have a look at some artist recommendations using [jq](https://stedolan.github.io/jq/).
+The file `artists.json` now contains the results of the computation. Let's have a look at some artist recommendations using the JSON processor [jq](https://stedolan.github.io/jq/).
 
 Who is strongly associated with _Michael Jackson_?
 
@@ -110,7 +110,7 @@ One of my favorite bands is [Hot Water Music](https://www.youtube.com/watch?v=Us
 
 ```
 
-And finally, we look at artists similar to [Paco de Lucia](https://en.wikipedia.org/wiki/Paco_de_Luc%C3%ADa) in homage to Ted's days of building search engines for Veoh :)
+And finally, we look for artists similar to [Paco de Lucia](https://en.wikipedia.org/wiki/Paco_de_Luc%C3%ADa) in homage to Ted's days of building search engines for Veoh :)
 
 `$ jq 'select(.for_item=="paco de lucia")' artists.json`
 
