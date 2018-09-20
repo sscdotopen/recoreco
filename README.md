@@ -15,7 +15,7 @@ $ cargo install recoreco
 
 **Recoreco** computes highly associated pairs of items (in the sense of _'people who are interested in X are also interested in Y'_) from interactions between users and items. 
 
-It is a command line tool that expects a **CSV file** as input, where each line denotes an interaction between a user and an item and consists of a **user identifier** and an **item identifier** separated by a **tab character**. **Recoco** by default outputs 10 associated items per item (with no particular ranking) in JSON format.
+It is a command line tool that expects a **CSV file** as input, where each line denotes an interaction between a user and an item and consists of a **user identifier** and an **item identifier** separated by a **tab character**. **Recoreco** by default outputs 10 associated items per item (with no particular ranking) in JSON format.
 
 If you would like to learn a bit more about the math behind the approach that **recoreco** is built on, checkout the book on [practical machine learning: innovations in recommendation](https://mapr.com/practical-machine-learning/) and the talk on [real-time puppies and ponies](https://www.slideshare.net/tdunning/realtime-puppies-and-ponies-evolving-indicator-recommendations-in-realtime) from my friend [Ted Dunning](https://twitter.com/ted_dunning). 
 
