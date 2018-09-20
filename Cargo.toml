@@ -3,7 +3,7 @@ name = "recoreco"
 description = "Fast item-to-item recommendations on the command line."
 version = "0.1.0"
 authors = ["Sebastian Schelter <ssc [at] apache [dot] org>"]
-license = "GPL"
+license = "GPL-3.0-or-later"
 
 [[bin]]
 name = "recoreco"
