@@ -1,15 +1,30 @@
 # recoreco
 Fast item-to-item recommendations on the command line.
 
+[![GitHub license](https://img.shields.io/github/license/sscdotopen/recoreco.svg)](https://github.com/sscdotopen/recoreco/blob/master/LICENSE)
+
+## Installation
+
+Currently, the only convenient way to install **recoreco** is via Rust's package manager [cargo](https://github.com/rust-lang/cargo):
+
+```
+$ cargo install recoreco
+```
+
 ## Quickstart
 
-TBD.
+Recoreco computes highly associated pairs of items (in the sense of _'people who are interested in X are also interested in Y'_) from interactions between users and items. 
+
+It is a command line tool that expects a **CSV file** as input, where each line consists of  
+
+If you would like to learn a bit more about the math behind the approach that **recoreco** is built on, checkout the book on [practical machine learning: innovations in recommendation](https://mapr.com/practical-machine-learning/) and the talk on [real-time puppies and ponies](https://www.slideshare.net/tdunning/realtime-puppies-and-ponies-evolving-indicator-recommendations-in-realtime) from my friend [Ted Dunning](https://twitter.com/ted_dunning). 
+
 
 ## Example: Finding related music artists with recoreco
 
-`$ git clone https://github.com/sscdotopen/recoreco.git && cd recoreco`
-
 [http://www.dtic.upf.edu/~ocelma/MusicRecommendationDataset/lastfm-360K.html](http://www.dtic.upf.edu/~ocelma/MusicRecommendationDataset/lastfm-360K.html)
+
+17,535,655 interactions between 358,868 users and 292,365 bands
 
 `$ wget http://mtg.upf.edu/static/datasets/last.fm/lastfm-dataset-360K.tar.gz`  
 `$ tar xvfz lastfm-dataset-360K.tar.gz`
@@ -36,7 +51,7 @@ $ head plays.csv
 
 
 ```
-$ cargo run --release -- --inputfile=plays.csv --outputfile=artists.json
+$ recoreco --inputfile=plays.csv --outputfile=artists.json
 
 Reading plays.csv to compute data statistics (pass 1/2)
 Found 17535655 interactions between 358868 users and 292365 items.
@@ -65,6 +80,31 @@ Writing indicators...
 }
 ```
 
+[Hot Water Music](https://www.youtube.com/watch?v=UsJ7zlwJnDg)
+
+`jq 'select(.for_item=="hot water music")' artists.json`
+
+```json
+{
+  "for_item": "hot water music",
+  "indicated_items": [
+    "lifetime",
+    "the get up kids",
+    "the lawrence arms",
+    "the gaslight anthem",
+    "dillinger four",
+    "propagandhi",
+    "the bouncing souls",
+    "strike anywhere",
+    "jawbreaker",
+    "chuck ragan"
+  ]
+}
+
+```
+
+
+[Black Flag](https://www.youtube.com/watch?v=302oEzSPCqE)
 
 `$ jq 'select(.for_item=="black flag")' artists.json`
 
@@ -85,8 +125,3 @@ Writing indicators...
   ]
 }
 ```
-
-## Background
-
-TBD.
-
