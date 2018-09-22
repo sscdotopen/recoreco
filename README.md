@@ -2,6 +2,8 @@
 Fast item-to-item recommendations on the command line.
 
 [![GitHub license](https://img.shields.io/github/license/sscdotopen/recoreco.svg)](https://github.com/sscdotopen/recoreco/blob/master/LICENSE)
+[![GitHub issues](https://img.shields.io/github/issues/sscdotopen/recoreco.svg)](https://github.com/awslabs/deequ/issues)
+[![Build Status](https://travis-ci.org/sscdotopen/recoreco.svg?branch=master)](https://travis-ci.org/awslabs/deequ)
 
 ## Installation
 
