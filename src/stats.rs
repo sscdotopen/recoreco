@@ -48,11 +48,11 @@ impl DataDictionary {
     }
 
     pub fn user_index(&self, name: &str) -> &u32 {
-        self.user_dict.get(name).unwrap()
+        &self.user_dict[name]
     }
 
     pub fn item_index(&self, name: &str) -> &u32 {
-        self.item_dict.get(name).unwrap()
+        &self.item_dict[name]
     }
 
     /// Builds up the data dictionary by consuming an iterator over string tuples representing

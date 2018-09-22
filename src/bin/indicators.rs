@@ -47,18 +47,18 @@ fn main() {
         Ok(matches) => matches,
         Err(failure) => {
             let hint = failure.to_string();
-            return print_usage_and_exit(&program, opts, Some(&hint))
+            return print_usage_and_exit(&program, &opts, Some(&hint))
         },
     };
 
     if matches.opt_present("h") {
-        return print_usage_and_exit(&program, opts, None);
+        return print_usage_and_exit(&program, &opts, None);
     }
 
     if !matches.opt_present("i") {
         return print_usage_and_exit(
             &program,
-            opts,
+            &opts,
             Some("Please specify an inputfile via --inputfile."),
         );
     }
@@ -70,7 +70,7 @@ fn main() {
         Ok(k) => k,
         Err(failure) => {
             let hint = format!("Problem with option 'n': {}", failure.to_string());
-            return print_usage_and_exit(&program, opts, Some(&hint))
+            return print_usage_and_exit(&program, &opts, Some(&hint))
         },
     };
 
@@ -79,7 +79,7 @@ fn main() {
 
 fn print_usage_and_exit(
     program: &str,
-    opts: Options,
+    opts: &Options,
     hint: Option<&str>
 ) {
 

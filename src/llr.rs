@@ -111,6 +111,7 @@ fn x_times_logx(x: u64, log_x: f64) -> f64 {
 mod tests {
 
     use std::collections::BinaryHeap;
+    use std::f64::EPSILON;
     use llr;
 
     #[test]
@@ -125,6 +126,10 @@ mod tests {
 
     fn close_enough_to(value: f64, expected: f64) -> bool {
         (value - expected).abs() < 0.01
+    }
+
+    fn within_epsilon(value: f64, expected: f64) -> bool {
+        (value - expected).abs() < EPSILON
     }
 
     #[test]
@@ -142,7 +147,7 @@ mod tests {
 
         let mut heap = BinaryHeap::with_capacity(K);
 
-        for scored_item in items.into_iter() {
+        for scored_item in &items {
             if heap.len() < K {
                 heap.push(scored_item);
             } else {
@@ -158,12 +163,12 @@ mod tests {
         assert_eq!(top_k.len(), 3);
 
         assert_eq!(top_k[0].item, 4);
-        assert_eq!(top_k[0].score, 3.5);
+        assert!(within_epsilon(top_k[0].score, 3.5));
 
         assert_eq!(top_k[1].item, 5);
-        assert_eq!(top_k[1].score, 2.5);
+        assert!(within_epsilon(top_k[1].score, 2.5));
 
         assert_eq!(top_k[2].item, 2);
-        assert_eq!(top_k[2].score, 1.5);
+        assert!(within_epsilon(top_k[2].score, 1.5));
     }
 }
