@@ -37,7 +37,7 @@ pub mod types;
 pub mod stats;
 
 use llr::ScoredItem;
-use types::{DenseVector, SparseVector, SparseMatrix, SparseBinaryMatrix};
+use types::{SparseVector, SparseMatrix, SparseBinaryMatrix};
 use stats::DataDictionary;
 
 pub fn indicators<T>(
@@ -95,7 +95,7 @@ where T: Iterator<Item=(String,String)> {
 
         if item_interaction_counts[item_idx] < f_max {
 
-            let mut user_history = samples_of_a.get_mut(user_idx).unwrap();
+            let mut user_history = &mut samples_of_a[user_idx];
             let num_items_in_user_history = user_history.len();
 
             if user_interaction_counts[user_idx] < k_max {
@@ -160,7 +160,7 @@ where T: Iterator<Item=(String,String)> {
     }
 
     pool.scoped(|scope| {
-        for item in items_to_rescore.iter() {
+        for item in &items_to_rescore {
 
             let row = &c[*item as usize];
             let indicators_for_item = &indicators[*item as usize];
@@ -172,7 +172,7 @@ where T: Iterator<Item=(String,String)> {
                     *item,
                     row,
                     reference_to_row_sums_of_c,
-                    &num_cooccurrences_observed,
+                    num_cooccurrences_observed,
                     indicators_for_item,
                     num_indicators_per_item,
                     reference_to_pre_computed_logarithms,
@@ -205,14 +205,14 @@ where T: Iterator<Item=(String,String)> {
 }
 
 fn to_millis(duration: Duration) -> u64 {
-    (duration.as_secs() * 1_000) + (duration.subsec_nanos() / 1_000_000) as u64
+    (duration.as_secs() * 1_000) + u64::from(duration.subsec_millis())
 }
 
 fn rescore(
     item: u32,
     cooccurrence_counts: &SparseVector,
-    row_sums_of_c: &DenseVector,
-    num_cooccurrences_observed: &u64,
+    row_sums_of_c: &[u32],
+    num_cooccurrences_observed: u64,
     indicators: &Mutex<BinaryHeap<ScoredItem>>,
     n: usize,
     logarithms_table: &[f64],
@@ -224,9 +224,9 @@ fn rescore(
     for (other_item, num_cooccurrences) in cooccurrence_counts.iter() {
 
         if *other_item != item {
-            let k11 = *num_cooccurrences as u64;
-            let k12 = row_sums_of_c[item as usize] as u64 - k11;
-            let k21 = row_sums_of_c[*other_item as usize] as u64 - k11;
+            let k11 = u64::from(*num_cooccurrences);
+            let k12 = u64::from(row_sums_of_c[item as usize]) - k11;
+            let k21 = u64::from(row_sums_of_c[*other_item as usize]) - k11;
             let k22 = num_cooccurrences_observed + k11 - k12 - k21;
 
             let llr_score = llr::log_likelihood_ratio(k11, k12, k21, k22, logarithms_table);

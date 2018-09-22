@@ -30,7 +30,6 @@ use std::path::Path;
 
 use fnv::FnvHashSet;
 
-use types::SparseBinaryMatrix;
 use stats::Renaming;
 
 /// Reads a CSV input file. We expect NO headers, and a user-item tuple per line
@@ -38,7 +37,7 @@ use stats::Renaming;
 pub fn csv_reader(file: &str) -> Result<csv::Reader<std::fs::File>, csv::Error> {
     let reader = csv::ReaderBuilder::new()
         .has_headers(false)
-        .delimiter('\t' as u8)
+        .delimiter(b'\t')
         .from_path(file)?;
 
     Ok(reader)
@@ -73,7 +72,7 @@ struct Indicators<'a> {
 /// inputfile. If an `indicators_path` is supplied, we write to a file at the specified path,
 /// otherwise, we output to stdout.
 pub fn write_indicators(
-    indicators: &SparseBinaryMatrix,
+    indicators: &[FnvHashSet<u32>],
     renaming: &Renaming,
     indicators_path: Option<String>,
 ) -> io::Result<()> {
@@ -98,7 +97,7 @@ pub fn write_indicators(
                 indicated_items
             });
 
-        write!(out, "{}\n", indicators_as_json.to_string())?;
+        writeln!(out, "{}", indicators_as_json.to_string())?;
     }
 
     Ok(())
