@@ -54,11 +54,56 @@ impl DataDictionary {
     pub fn item_index(&self, name: &str) -> &u32 {
         self.item_dict.get(name).unwrap()
     }
+
+    /// Builds up the data dictionary by consuming an iterator over string tuples representing
+    /// user-item interactions. We assume that the first string in the tuple identifies a user and
+    /// the second string identifies an item
+    pub fn from_owned<T>(interactions: T) -> Self
+        where T: Iterator<Item = (String, String)>
+    {
+        let mut user_index: u32 = 0;
+        let mut user_dict: FnvHashMap<String, u32> = FnvHashMap::default();
+
+        let mut item_index: u32 = 0;
+        let mut item_dict: FnvHashMap<String, u32> = FnvHashMap::default();
+
+        let mut num_interactions: u64 = 0;
+
+        for (user, item) in interactions {
+
+            user_dict.entry(user).or_insert_with(|| {
+                let current_user_index = user_index;
+                user_index += 1;
+                current_user_index
+            });
+
+            item_dict.entry(item).or_insert_with(|| {
+                let current_item_index = item_index;
+                item_index += 1;
+                current_item_index
+            });
+
+            num_interactions += 1;
+        }
+
+        DataDictionary { user_dict, item_dict, num_interactions }
+    }
+
+    /// Builds up the data dictionary by reading an iterator over string tuples representing
+    /// user-item interactions. We assume that the first string in the tuple identifies a user and
+    /// the second string identifies an item
+    pub fn from<'a,T>(interactions: T) -> DataDictionary
+        where T: Iterator<Item = &'a(String, String)> {
+
+        let owned = interactions
+            .map(|(user, item)| (user.to_owned(), item.to_owned()));
+
+        DataDictionary::from_owned(owned)
+    }
+
 }
 
-/// Builds up the data dictionary by consuming an iterator over string tuples representing
-/// user-item interactions. We assume that the first string in the tuple identifies a user and
-/// the second string identifies an item
+
 impl <T> From<T> for DataDictionary
     where T: Iterator<Item = (String, String)>
 {
@@ -137,7 +182,33 @@ mod tests {
             ("user_c".to_string(), "item_a".to_string()),
         ];
 
-        let data_dict = DataDictionary::from_iter(interactions.into_iter());
+        let data_dict = DataDictionary::from(interactions.iter());
+
+        assert_eq!(data_dict.num_users(), 3);
+        assert_eq!(data_dict.num_items(), 2);
+        assert_eq!(data_dict.num_interactions(), 4);
+
+        assert_eq!(*data_dict.user_index("user_a"), 0);
+        assert_eq!(*data_dict.user_index("user_c"), 2);
+
+        assert_eq!(*data_dict.item_index("item_a"), 0);
+        assert_eq!(*data_dict.item_index("item_b"), 1);
+
+        // Make sure we don't lose ownership of interactions
+        assert_eq!(interactions.len(), 4);
+    }
+
+    #[test]
+    fn dict_from_owned_tuple_iterator() {
+
+        let interactions = vec![
+            ("user_a".to_string(), "item_a".to_string()),
+            ("user_a".to_string(), "item_b".to_string()),
+            ("user_b".to_string(), "item_b".to_string()),
+            ("user_c".to_string(), "item_a".to_string()),
+        ];
+
+        let data_dict = DataDictionary::from_owned(interactions.into_iter());
 
         assert_eq!(data_dict.num_users(), 3);
         assert_eq!(data_dict.num_items(), 2);

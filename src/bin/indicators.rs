@@ -97,7 +97,7 @@ fn compute_indicators(
     indicators_path: Option<String>
 ) -> Result<(), Box<Error>> {
 
-    // We use constants here for the moment, should result in a good runtime/quality ratio.
+    // We use constants here for the moment, these should result in a good runtime/quality ratio.
     const F_MAX: u32 = 500;
     const K_MAX: u32 = 500;
 
@@ -105,7 +105,7 @@ fn compute_indicators(
 
     let mut reader_pass_one = io::csv_reader(&interactions_path)?;
     let interactions = io::interactions_from_csv(&mut reader_pass_one);
-    let data_dict = DataDictionary::from(interactions);
+    let data_dict = DataDictionary::from_owned(interactions);
 
     println!(
         "Found {} interactions between {} users and {} items.",
