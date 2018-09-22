@@ -39,11 +39,15 @@ fn cmp_reverse(scored_item_a: &ScoredItem, scored_item_b: &ScoredItem) -> Orderi
 impl Eq for ScoredItem {}
 
 impl Ord for ScoredItem {
-    fn cmp(&self, other: &Self) -> Ordering { cmp_reverse(self, other) }
+    fn cmp(&self, other: &Self) -> Ordering {
+        cmp_reverse(self, other)
+    }
 }
 
 impl PartialOrd for ScoredItem {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> { Some(cmp_reverse(self, other)) }
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(cmp_reverse(self, other))
+    }
 }
 
 /// Precompute a table of logarithms which will be used for lookups later
@@ -113,6 +117,18 @@ mod tests {
     use std::collections::BinaryHeap;
     use std::f64::EPSILON;
     use llr;
+    use llr::ScoredItem;
+
+    #[test]
+    fn scored_item_ordering_reversed() {
+        let item_a = ScoredItem { item: 1, score: 0.5 };
+        let item_b = ScoredItem { item: 2, score: 1.5 };
+        let item_c = ScoredItem { item: 3, score: 0.3 };
+
+        assert!(item_a > item_b);
+        assert!(item_a < item_c);
+        assert!(item_b < item_c);
+    }
 
     #[test]
     fn llr() {
@@ -138,11 +154,11 @@ mod tests {
         const K: usize = 3;
 
         let items = [
-            llr::ScoredItem { item: 1, score: 0.5 },
-            llr::ScoredItem { item: 2, score: 1.5 },
-            llr::ScoredItem { item: 3, score: 0.3 },
-            llr::ScoredItem { item: 4, score: 3.5 },
-            llr::ScoredItem { item: 5, score: 2.5 },
+            ScoredItem { item: 1, score: 0.5 },
+            ScoredItem { item: 2, score: 1.5 },
+            ScoredItem { item: 3, score: 0.3 },
+            ScoredItem { item: 4, score: 3.5 },
+            ScoredItem { item: 5, score: 2.5 },
         ];
 
         let mut heap = BinaryHeap::with_capacity(K);

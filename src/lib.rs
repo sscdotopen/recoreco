@@ -219,7 +219,6 @@ fn rescore(
 ) {
 
     let mut indicators_for_item = indicators.lock().unwrap();
-    indicators_for_item.clear();
 
     for (other_item, num_cooccurrences) in cooccurrence_counts.iter() {
 
