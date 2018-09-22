@@ -103,8 +103,9 @@ fn compute_indicators(
 
     println!("Reading {} to compute data statistics (pass 1/2)", interactions_path);
 
-    let reader_pass_one = io::csv_reader(&interactions_path)?;
-    let data_dict = DataDictionary::from(reader_pass_one);
+    let mut reader_pass_one = io::csv_reader(&interactions_path)?;
+    let interactions = io::interactions_from_csv(&mut reader_pass_one);
+    let data_dict = DataDictionary::from(interactions);
 
     println!(
         "Found {} interactions between {} users and {} items.",

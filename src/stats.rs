@@ -19,8 +19,6 @@
 extern crate fnv;
 extern crate csv;
 
-use std;
-use io;
 use fnv::FnvHashMap;
 
 /// Maps from string identifiers to internal indexes.
@@ -56,13 +54,15 @@ impl DataDictionary {
     pub fn item_index(&self, name: &str) -> &u32 {
         self.item_dict.get(name).unwrap()
     }
+}
 
-    /// Builds up the data dictionary by consuming an iterator over string tuples representing
-    /// user-item interactions. We assume that the first string in the tuple identifies a user and
-    /// the second string identifies an item
-    fn from_iter<T>(iter: T) -> Self
-        where T: Iterator<Item = (String, String)>
-    {
+/// Builds up the data dictionary by consuming an iterator over string tuples representing
+/// user-item interactions. We assume that the first string in the tuple identifies a user and
+/// the second string identifies an item
+impl <T> From<T> for DataDictionary
+    where T: Iterator<Item = (String, String)>
+{
+    fn from(iter: T) -> Self {
         let mut user_index: u32 = 0;
         let mut user_dict: FnvHashMap<String, u32> = FnvHashMap::default();
 
@@ -92,16 +92,6 @@ impl DataDictionary {
     }
 }
 
-/// Create a DataDictionary from a csv file
-impl <R> From<csv::Reader<R>> for DataDictionary
-    where R: std::io::Read {
-
-    fn from(mut csv_reader: csv::Reader<R>) -> Self {
-        let interactions = io::interactions_from_csv(&mut csv_reader);
-
-        DataDictionary::from_iter(interactions)
-    }
-}
 
 pub struct Renaming {
     item_names: FnvHashMap<u32, String>,

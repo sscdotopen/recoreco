@@ -1,13 +1,16 @@
 [package]
 name = "recoreco"
 description = "Fast item-to-item recommendations on the command line."
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Sebastian Schelter <ssc [at] apache [dot] org>"]
 license = "GPL-3.0-or-later"
 
 [[bin]]
 name = "recoreco"
 path = "src/bin/indicators.rs"
+
+[lib]
+path = "src/lib.rs"
 
 [dependencies]
 csv = "1.0"
