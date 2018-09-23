@@ -32,6 +32,7 @@ use fnv::FnvHashSet;
 use scoped_pool::Pool;
 
 mod llr;
+mod usage_tests;
 pub mod io;
 pub mod types;
 pub mod stats;
