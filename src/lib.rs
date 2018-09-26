@@ -1,3 +1,17 @@
+//! ## RecoReco - fast item-based recommendations on the command line.
+//!
+//! **Recoreco** computes highly associated pairs of items (in the sense of 'people who are
+//! interested in X are also interested in Y') from interactions between users and items. It is a
+//! command line tool that expects a CSV file as input, where each line denotes an interaction
+//! between a user and an item and consists of a user identifier and an item identifier separated
+//! by a tab character. Recoreco by default outputs 10 associated items per item (with no particular
+//! ranking) in JSON format.
+//!
+//! If you would like to learn more about the math behind the approach that **recoreco** is built
+//! on, checkout the book on [practical machine learning: innovations in recommendation](https://mapr.com/practical-machine-learning/)
+//! and the talk on [real-time puppies and ponies](https://www.slideshare.net/tdunning/realtime-puppies-and-ponies-evolving-indicator-recommendations-in-realtime)
+//! from my friend [Ted Dunning](https://twitter.com/ted_dunning).
+
 /**
  * RecoReco
  * Copyright (C) 2018 Sebastian Schelter
@@ -32,7 +46,6 @@ use fnv::FnvHashSet;
 use scoped_pool::Pool;
 
 mod llr;
-mod usage_tests;
 pub mod io;
 pub mod types;
 pub mod stats;
@@ -41,6 +54,80 @@ use llr::ScoredItem;
 use types::{SparseVector, SparseMatrix, SparseBinaryMatrix};
 use stats::DataDictionary;
 
+/// Compute item indicators from a stream of interactions.
+///
+/// * `interactions` - the observed interactions
+/// * `data_dict` - a data dictionary which maps string to integer identifiers
+/// * `pool_size`  - the number of CPUs to use for the computation
+/// * `num_indicators_per_item` - the number of highly associated items to compute per item (use 10 as default)
+/// * `f_max` - the maximum number of interactions to account for per user (use 500 as default)
+/// * `k_max` - The maximum number of interactions to account for per item (use 500 as default)
+///
+/// # Examples
+///
+/// Basic usage:
+///
+/// ```
+/// extern crate recoreco;
+/// use recoreco::stats::{DataDictionary, Renaming};
+/// use recoreco::indicators;
+///
+/// /* Our input data comprises of observed interactions between users and items.
+///    The identifiers used can be strings of arbitrary length and structure. */
+///
+/// let interactions = vec![
+///     ("alice".to_owned(), "apple".to_owned()),
+///     ("alice".to_owned(), "dog".to_owned()),
+///     ("alice".to_owned(), "pony".to_owned()),
+///     ("bob".to_owned(), "apple".to_owned()),
+///     ("bob".to_owned(), "pony".to_owned()),
+///     ("charles".to_owned(), "pony".to_owned()),
+///     ("charles".to_owned(), "bike".to_owned())
+/// ];
+///
+/// /* Internally, recoreco uses consecutive integer ids and requires some knowledge about
+///    the statistics of the data for efficient allocation. Therefore, we read the
+///    interaction data once to compute a data dictionary that helps us map from string to
+///    integer identifiers and has basic statistics of the data */
+///
+/// let data_dict = DataDictionary::from(interactions.iter());
+///
+/// println!(
+///     "Found {} interactions between {} users and {} items.",
+///     data_dict.num_interactions(),
+///     data_dict.num_users(),
+///     data_dict.num_items(),
+/// );
+///
+/// /* Now we read the interactions a second time and compute the indicator matrix from item
+///    cooccurrences. The result is the so-called indicator matrix, where each entry
+///    indicates highly associated pairs of items. */
+///
+/// let indicated_items = indicators(
+///     interactions.into_iter(),
+///     &data_dict,
+///     2,
+///     10,
+///     500,
+///     500
+/// );
+///
+/// /* The renaming data structure helps us map the integer ids back to the original
+///    string ids. */
+///
+/// let renaming = Renaming::from(data_dict);
+///
+/// /* We print the resulting highly associated pairs of items. */
+/// for (item_index, indicated_items_for_item) in indicated_items.iter().enumerate() {
+///     let item_name = renaming.item_name(item_index as u32);
+///     println!("Items highly associated with {}:", item_name);
+///
+///     for indicated_item_index in indicated_items_for_item.iter() {
+///         let indicated_item_name = renaming.item_name(*indicated_item_index as u32);
+///         println!("\t{}", indicated_item_name);
+///     }
+/// }
+/// ```
 pub fn indicators<T>(
     interactions: T,
     data_dict: &DataDictionary,
