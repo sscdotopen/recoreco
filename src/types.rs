@@ -1,3 +1,9 @@
+//! ## Type definitions to map from tensors to Rust collections
+//!
+//! Item-based recommenders need to work with different types of matrices (especially sparse ones).
+//! This module defines the internal representation (e.g., the Rust collections) used for these
+//! matrices.
+//!
 /**
  * RecoReco
  * Copyright (C) 2018 Sebastian Schelter
@@ -20,17 +26,24 @@ extern crate fnv;
 
 use fnv::{FnvHashMap, FnvHashSet};
 
+/// 32 bit integer vector, backed by a `Vec<u32>`
 pub type DenseVector = Vec<u32>;
 
+/// Sparse 16 bit integer vector, backed by a `FnvHashMap<u32, u16>`
 pub type SparseVector = FnvHashMap<u32, u16>;
+
+/// Sparse 16 bit integer matrix, row-wise representation, backed by a `Vec<FnvHashMap<u32, u16>>`
 pub type SparseMatrix = Vec<SparseVector>;
 
+/// Sparse binary matrix, row-wise representation, backed by a `Vec<FnvHashSet<u32>>`
 pub type SparseBinaryMatrix = Vec<FnvHashSet<u32>>;
 
+/// Allocates a dense zero vector with of size `dimensions`
 pub fn new_dense_vector(dimensions: usize) -> DenseVector {
     vec![0; dimensions]
 }
 
+/// Allocates a sparse binary matrix with empty rows
 pub fn new_sparse_matrix(num_rows: usize) -> SparseMatrix {
     vec![FnvHashMap::with_capacity_and_hasher(0, Default::default()); num_rows]
 }

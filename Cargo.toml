@@ -1,14 +1,15 @@
 [package]
 name = "recoreco"
 description = "Fast item-to-item recommendations on the command line."
-version = "0.1.4"
+version = "0.1.5"
 authors = ["Sebastian Schelter <ssc [at] apache [dot] org>"]
 license = "GPL-3.0-or-later"
+homepage = "https://github.com/sscdotopen/recoreco"
+repository = "https://github.com/sscdotopen/recoreco.git"
 
 [[bin]]
 name = "recoreco"
 path = "src/bin/indicators.rs"
-
 
 [lib]
 path = "src/lib.rs"

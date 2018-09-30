@@ -1,3 +1,9 @@
+//! ## Helper methods for dealing with interaction data
+//!
+//! This module provides a few convenience functions to consume interaction data stored in CSV
+//! files, which by our experience is the most common data format for item interactions. Note that
+//! these implementations do not assume that they can hold the whole CSV in memory.
+//!
 /**
  * RecoReco
  * Copyright (C) 2018 Sebastian Schelter
@@ -32,8 +38,18 @@ use fnv::FnvHashSet;
 
 use stats::Renaming;
 
-/// Reads a CSV input file. We expect NO headers, and a user-item tuple per line
-/// with tab separation.
+/// Reads a CSV input file. We expect **NO headers**, and a **user-item pair per line**
+/// with **tab separation**, which denotes an interaction between a user and this item, e.g.,
+///
+/// <pre>
+/// alice&#9;apple
+/// alice&#9;dog
+/// alice&#9;pony
+/// bob&#9;apple
+/// bob&#9;pony
+/// charles&#9;pony
+/// charles&#9;bike
+/// </pre>
 pub fn csv_reader(file: &str) -> Result<csv::Reader<std::fs::File>, csv::Error> {
     let reader = csv::ReaderBuilder::new()
         .has_headers(false)
@@ -43,6 +59,12 @@ pub fn csv_reader(file: &str) -> Result<csv::Reader<std::fs::File>, csv::Error> 
     Ok(reader)
 }
 
+/// Converts a `csv::Reader` for an interaction file into an `Iterator<Item=(String, String)>` over
+/// the contained interactions.
+///
+/// This iterator can be used to construct a `recoreco::stats::DataDictionary` via
+/// `recoreco::stats::DataDictionary::from` or to compute  highly associated paris of items
+/// via `recoreco::indicators`.
 pub fn interactions_from_csv<'a, R>(
     reader: &'a mut csv::Reader<R>
 ) -> impl Iterator<Item=(String, String)> + 'a
@@ -70,7 +92,10 @@ struct Indicators<'a> {
 
 /// Output the computed indicators in JSON format, using the original identifiers from the
 /// inputfile. If an `indicators_path` is supplied, we write to a file at the specified path,
-/// otherwise, we output to stdout.
+/// otherwise, we output to stdout. Each line holds a JSON representation 
+///
+/// `{ "for_item": "michael jackson", "indicated_items": ["justin timberlake", "queen"] }`
+///
 pub fn write_indicators(
     indicators: &[FnvHashSet<u32>],
     renaming: &Renaming,

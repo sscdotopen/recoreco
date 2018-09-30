@@ -1,3 +1,10 @@
+//! ## Mapping between original string identifiers and internal indexes
+//!
+//! Many interaction datasets contain string identifiers for users and items. Internally however,
+//! we want to internally work with consecutive integer ids for memory efficiency. We therefore
+//! keep track of the string identifiers of users and items as well as the overall number of
+//! interactions in order to map back and forth between the two representations.
+//!
 /**
  * RecoReco
  * Copyright (C) 2018 Sebastian Schelter
@@ -21,41 +28,41 @@ extern crate csv;
 
 use fnv::FnvHashMap;
 
-/// Maps from string identifiers to internal indexes.
-///
-/// Many interaction datasets contain string identifiers, however we want to internally work with
-/// consecutive integer ids. We therefore keep track of the string identifiers of users and items
-/// as well as the overall number of interactions
+/// Mapping from original string based identifiers to internal `u32` indexes.
 pub struct DataDictionary {
     user_dict: FnvHashMap<String, u32>,
     item_dict: FnvHashMap<String, u32>,
     num_interactions: u64,
 }
 
-/// Accessor methods for the data dictionary
 impl DataDictionary {
 
+    /// Returns the overall number of users in the dataset.
     pub fn num_users(&self) -> usize {
         self.user_dict.len()
     }
 
+    /// Returns the overall number of items in the dataset.
     pub fn num_items(&self) -> usize {
         self.item_dict.len()
     }
 
+    /// Returns the overall number of interactions in the dataset.
     pub fn num_interactions(&self) -> u64 {
         self.num_interactions
     }
 
+    /// Returns the internal index for the user with the string identifier `name`
     pub fn user_index(&self, name: &str) -> &u32 {
         &self.user_dict[name]
     }
 
+    /// Returns the internal index for the item with the string identifier `name`
     pub fn item_index(&self, name: &str) -> &u32 {
         &self.item_dict[name]
     }
 
-    /// Builds up the data dictionary by consuming an iterator over string tuples representing
+    /// Builds up a `DataDictionary` by consuming an iterator over string tuples representing
     /// user-item interactions. We assume that the first string in the tuple identifies a user and
     /// the second string identifies an item
     pub fn from_owned<T>(interactions: T) -> Self
@@ -89,9 +96,9 @@ impl DataDictionary {
         DataDictionary { user_dict, item_dict, num_interactions }
     }
 
-    /// Builds up the data dictionary by reading an iterator over string tuples representing
-    /// user-item interactions. We assume that the first string in the tuple identifies a user and
-    /// the second string identifies an item
+    /// Builds up a `DataDictionary` by reading an iterator over references to string tuples
+    /// representing user-item interactions. We assume that the first string in the tuple
+    /// identifies a user and the second string identifies an item
     pub fn from<'a,T>(interactions: T) -> DataDictionary
         where T: Iterator<Item = &'a(String, String)> {
 
@@ -100,10 +107,11 @@ impl DataDictionary {
 
         DataDictionary::from_owned(owned)
     }
-
 }
 
-
+/// Builds up a `DataDictionary` by reading an iterator over string tuples representing
+/// user-item interactions. We assume that the first string in the tuple identifies a user and
+/// the second string identifies an item
 impl <T> From<T> for DataDictionary
     where T: Iterator<Item = (String, String)>
 {
@@ -137,14 +145,13 @@ impl <T> From<T> for DataDictionary
     }
 }
 
-
+/// Allows to remap the internal item indexes to the original string identifiers
 pub struct Renaming {
     item_names: FnvHashMap<u32, String>,
 }
 
 impl Renaming {
-
-    /// Reverse mapping from internal indexes to original item names
+    /// Return original string identifier for the internal index `item_index`
     pub fn item_name(&self, item_index: u32) -> &str {
         &self.item_names[&item_index]
     }
@@ -176,10 +183,10 @@ mod tests {
     fn dict_from_tuple_iterator() {
 
         let interactions = vec![
-            ("user_a".to_string(), "item_a".to_string()),
-            ("user_a".to_string(), "item_b".to_string()),
-            ("user_b".to_string(), "item_b".to_string()),
-            ("user_c".to_string(), "item_a".to_string()),
+            (String::from("user_a"), String::from("item_a")),
+            (String::from("user_a"), String::from("item_b")),
+            (String::from("user_b"), String::from("item_b")),
+            (String::from("user_c"), String::from("item_a")),
         ];
 
         let data_dict = DataDictionary::from(interactions.iter());
@@ -202,10 +209,10 @@ mod tests {
     fn dict_from_owned_tuple_iterator() {
 
         let interactions = vec![
-            ("user_a".to_string(), "item_a".to_string()),
-            ("user_a".to_string(), "item_b".to_string()),
-            ("user_b".to_string(), "item_b".to_string()),
-            ("user_c".to_string(), "item_a".to_string()),
+            (String::from("user_a"), String::from("item_a")),
+            (String::from("user_a"), String::from("item_b")),
+            (String::from("user_b"), String::from("item_b")),
+            (String::from("user_c"), String::from("item_a")),
         ];
 
         let data_dict = DataDictionary::from_owned(interactions.into_iter());
@@ -225,14 +232,14 @@ mod tests {
     fn renaming_from_dict() {
 
         let user_mapping = vec![
-            ("user_a".to_string(), 0),
-            ("user_b".to_string(), 1),
+            (String::from("user_a"), 0),
+            (String::from("user_b"), 1),
         ];
 
         let item_mapping = vec![
-            ("item_a".to_string(), 0),
-            ("item_b".to_string(), 1),
-            ("item_c".to_string(), 2),
+            (String::from("item_a"), 0),
+            (String::from("item_b"), 1),
+            (String::from("item_c"), 2),
         ];
 
         let user_dict: FnvHashMap<String,u32> = user_mapping.into_iter().collect();

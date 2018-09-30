@@ -28,13 +28,13 @@ mod tests {
         /* Our input data comprises of observed interactions between users and items.
            The identifiers used can be strings of arbitrary length and structure. */
         let interactions = vec![
-            ("alice".to_owned(), "apple".to_owned()),
-            ("alice".to_owned(), "dog".to_owned()),
-            ("alice".to_owned(), "pony".to_owned()),
-            ("bob".to_owned(), "apple".to_owned()),
-            ("bob".to_owned(), "pony".to_owned()),
-            ("charles".to_owned(), "pony".to_owned()),
-            ("charles".to_owned(), "bike".to_owned())
+            (String::from("alice"), String::from("apple")),
+            (String::from("alice"), String::from("dog")),
+            (String::from("alice"), String::from("pony")),
+            (String::from("bob"), String::from("apple")),
+            (String::from("bob"), String::from("pony")),
+            (String::from("charles"), String::from("pony")),
+            (String::from("charles"), String::from("bike"))
         ];
 
         /* Internally, recoreco uses consecutive integer ids and requires some knowledge about the
