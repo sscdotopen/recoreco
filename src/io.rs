@@ -30,6 +30,7 @@ extern crate serde_json;
 use std;
 use std::io;
 use std::io::prelude::*;
+use std::io::BufWriter;
 use std::io::stdout;
 use std::fs::File;
 use std::path::Path;
@@ -102,9 +103,9 @@ pub fn write_indicators(
     indicators_path: Option<String>,
 ) -> io::Result<()> {
 
-    let mut out: Box<Write> = match indicators_path {
-        Some(path) => Box::new(File::create(&Path::new(&path))?),
-        _ => Box::new(stdout()),
+    let mut out = match indicators_path {
+        Some(path) => boxed_writer(File::create(&Path::new(&path))?),
+        _ => boxed_writer(stdout()),
     };
 
     for (item_index, indicated_item_indices) in indicators.into_iter().enumerate() {
@@ -126,4 +127,12 @@ pub fn write_indicators(
     }
 
     Ok(())
+}
+
+fn boxed_writer<T>(
+    destination: T
+) -> Box<Write>
+    where T: Write + 'static {
+
+    Box::new(BufWriter::new(destination))
 }
