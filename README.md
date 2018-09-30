@@ -4,6 +4,7 @@ Fast item-to-item recommendations on the command line.
 [![GitHub license](https://img.shields.io/github/license/sscdotopen/recoreco.svg)](https://github.com/sscdotopen/recoreco/blob/master/LICENSE)
 [![GitHub issues](https://img.shields.io/github/issues/sscdotopen/recoreco.svg)](https://github.com/sscdotopen/recoreco/issues)
 [![Build Status](https://travis-ci.org/sscdotopen/recoreco.svg?branch=master)](https://travis-ci.org/sscdotopen/recoreco)
+[![](http://meritbadge.herokuapp.com/recoreco)](https://crates.io/crates/recoreco)
 
 ## Installation
 
@@ -136,4 +137,4 @@ And finally, we look for artists similar to [Paco de Lucia](https://en.wikipedia
 
 ## Programmatic Usage
 
-**recoreco** can also be included as a library in your rust program. We provide a [basic example](src/usage_tests.rs) on how to do this and are actively working on improved documentation for this use case. 
+**recoreco** can also be included as a library in your rust program. We provide a [basic example](src/usage_tests.rs) on how to do this. Be sure to checkout the [documentation](https://docs.rs/recoreco/0.1.6/recoreco/) for further details.
