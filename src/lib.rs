@@ -50,7 +50,7 @@ pub mod io;
 pub mod types;
 pub mod stats;
 
-mod usage_test;
+mod usage_tests;
 
 use llr::ScoredItem;
 use types::{SparseVector, SparseMatrix, SparseBinaryMatrix};
