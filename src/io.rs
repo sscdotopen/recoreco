@@ -132,7 +132,8 @@ pub fn write_indicators(
 fn boxed_writer<T>(
     destination: T
 ) -> Box<Write>
-    where T: Write + 'static {
-
+where
+    T: Write + 'static
+{
     Box::new(BufWriter::new(destination))
 }

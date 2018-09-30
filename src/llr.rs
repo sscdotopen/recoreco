@@ -19,7 +19,7 @@
 use std::cmp::Ordering;
 
 /// Result type used to find the top-k anomalous items per item via a binary heap
-#[derive(PartialEq,Debug)]
+#[derive(PartialEq, Debug)]
 pub struct ScoredItem {
     pub item: u32,
     pub score: f64,
@@ -54,13 +54,7 @@ impl PartialOrd for ScoredItem {
 pub fn logarithms_table(max_arg: usize) -> Vec<f64> {
 
     (0..max_arg)
-        .map(|index| {
-            if index == 0 {
-                0.0
-            } else {
-                (index as f64).ln()
-            }
-        })
+        .map(|index| if index == 0 { 0.0 } else { (index as f64).ln() })
         .collect()
 }
 
@@ -88,8 +82,11 @@ pub fn log_likelihood_ratio(k11: u64, k12: u64, k21: u64, k22: u64, logarithms: 
 
     let row_entropy = xlx_all - x_times_logx(k11 + k12, log_k11_12) - x_logx(k21 + k22);
     let column_entropy = xlx_all - x_times_logx(k11 + k21, log_k11_21) - x_logx(k12 + k22);
-    let matrix_entropy = xlx_all - x_times_logx(k11, log_k11) - x_times_logx(k12, log_k12) -
-        x_times_logx(k21, log_k21) - x_logx(k22);
+    let matrix_entropy = xlx_all
+        - x_times_logx(k11, log_k11)
+        - x_times_logx(k12, log_k12)
+        - x_times_logx(k21, log_k21)
+        - x_logx(k22);
 
     if row_entropy + column_entropy < matrix_entropy {
         0.0 // Round off error

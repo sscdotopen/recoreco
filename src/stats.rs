@@ -66,7 +66,8 @@ impl DataDictionary {
     /// user-item interactions. We assume that the first string in the tuple identifies a user and
     /// the second string identifies an item
     pub fn from_owned<T>(interactions: T) -> Self
-        where T: Iterator<Item = (String, String)>
+    where
+        T: Iterator<Item = (String, String)>
     {
         let mut user_index: u32 = 0;
         let mut user_dict: FnvHashMap<String, u32> = FnvHashMap::default();
@@ -100,7 +101,9 @@ impl DataDictionary {
     /// representing user-item interactions. We assume that the first string in the tuple
     /// identifies a user and the second string identifies an item
     pub fn from<'a,T>(interactions: T) -> DataDictionary
-        where T: Iterator<Item = &'a(String, String)> {
+    where
+        T: Iterator<Item = &'a(String, String)>
+    {
 
         let owned = interactions
             .map(|(user, item)| (user.to_owned(), item.to_owned()));
@@ -113,7 +116,8 @@ impl DataDictionary {
 /// user-item interactions. We assume that the first string in the tuple identifies a user and
 /// the second string identifies an item
 impl <T> From<T> for DataDictionary
-    where T: Iterator<Item = (String, String)>
+where
+    T: Iterator<Item = (String, String)>
 {
     fn from(iter: T) -> Self {
         let mut user_index: u32 = 0;
@@ -161,7 +165,8 @@ impl Renaming {
 impl From<DataDictionary> for Renaming {
 
     fn from(data_dict: DataDictionary) -> Self {
-        let item_names: FnvHashMap<u32, String> = data_dict.item_dict
+        let item_names: FnvHashMap<u32, String> = data_dict
+            .item_dict
             .into_iter()
             .map(|(name, item_id)| (item_id, name))
             .collect(); // Checked that size_hint() gives correct bounds
@@ -176,8 +181,8 @@ mod tests {
 
     extern crate fnv;
 
-    use stats::{DataDictionary, Renaming};
     use fnv::FnvHashMap;
+    use stats::{DataDictionary, Renaming};
 
     #[test]
     fn dict_from_tuple_iterator() {
@@ -242,8 +247,8 @@ mod tests {
             (String::from("item_c"), 2),
         ];
 
-        let user_dict: FnvHashMap<String,u32> = user_mapping.into_iter().collect();
-        let item_dict: FnvHashMap<String,u32> = item_mapping.into_iter().collect();
+        let user_dict: FnvHashMap<String, u32> = user_mapping.into_iter().collect();
+        let item_dict: FnvHashMap<String, u32> = item_mapping.into_iter().collect();
 
         let data_dict = DataDictionary { user_dict, item_dict, num_interactions: 10 };
 

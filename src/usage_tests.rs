@@ -34,7 +34,7 @@ mod tests {
             (String::from("bob"), String::from("apple")),
             (String::from("bob"), String::from("pony")),
             (String::from("charles"), String::from("pony")),
-            (String::from("charles"), String::from("bike"))
+            (String::from("charles"), String::from("bike")),
         ];
 
         /* Internally, recoreco uses consecutive integer ids and requires some knowledge about the
@@ -54,12 +54,12 @@ mod tests {
            cooccurrences. The result is the so-called indicator matrix, where each entry indicates
            highly associated pairs of items. */
         let indicated_items = indicators(
-            interactions.into_iter(),   // The observed interactions
+            interactions.into_iter(), // The observed interactions
             &data_dict, // The data dictionary which maps string to integer identifiers
-            2,  // The number of CPUs to use for the computation
+            2, // The number of CPUs to use for the computation
             10, // The number of highly associated items to compute per item
             500, // The maximum number of interactions to account for per user (use 500 as default)
-            500 // The maximum number of interactions to account for per item (use 500 as default)
+            500, // The maximum number of interactions to account for per item (use 500 as default)
         );
 
         /* The renaming data structure helps us map the integer ids back to the original

@@ -70,8 +70,8 @@ fn main() {
         Ok(k) => k,
         Err(failure) => {
             let hint = format!("Problem with option 'n': {}", failure.to_string());
-            return print_usage_and_exit(&program, &opts, Some(&hint))
-        },
+            return print_usage_and_exit(&program, &opts, Some(&hint));
+        }
     };
 
     compute_indicators(&interactions_path, k, indicators_path).unwrap();
@@ -94,7 +94,7 @@ fn print_usage_and_exit(
 fn compute_indicators(
     interactions_path: &str,
     n: usize,
-    indicators_path: Option<String>
+    indicators_path: Option<String>,
 ) -> Result<(), Box<Error>> {
 
     // We use constants here for the moment, these should result in a good runtime/quality ratio.

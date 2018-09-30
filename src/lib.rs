@@ -34,8 +34,10 @@ extern crate rand;
 extern crate fnv;
 extern crate scoped_pool;
 
-#[macro_use] extern crate serde_derive;
-#[macro_use] extern crate serde_json;
+#[macro_use]
+extern crate serde_derive;
+#[macro_use]
+extern crate serde_json;
 
 use std::collections::BinaryHeap;
 use std::sync::Mutex;
@@ -138,7 +140,9 @@ pub fn indicators<T>(
     f_max: u32,
     k_max: u32
 ) -> SparseBinaryMatrix
-where T: Iterator<Item=(String,String)> {
+where
+    T: Iterator<Item = (String, String)>
+{
 
     let num_items = data_dict.num_items();
     let num_users = data_dict.num_users();
