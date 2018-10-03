@@ -173,7 +173,7 @@ where
 
     let mut rng = rand::XorShiftRng::new_unseeded();
 
-    let batch_start = Instant::now();
+    let start = Instant::now();
 
     let mut items_to_rescore = FnvHashSet::default();
 
@@ -185,33 +185,38 @@ where
         let item_idx = item as usize;
         let user_idx = user as usize;
 
+        // Update number of observed interactions for user
         user_non_sampled_interaction_counts[user_idx] += 1;
 
+        // Check whether we have seen enough interactions for this item yet
         if item_interaction_counts[item_idx] < f_max {
 
+            // Retrieve current history sample for interacting user
             let mut user_history = &mut samples_of_a[user_idx];
             let num_items_in_user_history = user_history.len();
 
+            // Check whether we have seen enough interactions for this user yet
             if user_interaction_counts[user_idx] < k_max {
 
+                // Record coocurrences with all other items from user history
                 for other_item in user_history.iter() {
-
                     *c[item_idx].entry(*other_item).or_insert(0) += 1;
                     *c[*other_item as usize].entry(item).or_insert(0) += 1;
-
                     row_sums_of_c[*other_item as usize] += 1;
-                    items_to_rescore.insert(*other_item);
                 }
 
-                row_sums_of_c[item_idx] += num_items_in_user_history as u32;
-                num_cooccurrences_observed += 2 * num_items_in_user_history as u64;
-
+                // Add item to user history
                 user_history.push(item);
+                // Register items for rescoring
+                items_to_rescore.extend(user_history.iter());
+                items_to_rescore.insert(item);
 
+                // Update statistics for user and item interaction counts and
+                // cooccurrence matrix sums
                 user_interaction_counts[user_idx] += 1;
                 item_interaction_counts[item_idx] += 1;
-
-                items_to_rescore.insert(item);
+                row_sums_of_c[item_idx] += num_items_in_user_history as u32;
+                num_cooccurrences_observed += 2 * num_items_in_user_history as u64;
 
             } else {
 
@@ -226,28 +231,29 @@ where
                     for (n, other_item) in user_history.iter().enumerate() {
 
                         if n != k {
-
+                            // Adjust cooccurrence counts
                             *c[item_idx].entry(*other_item).or_insert(0) += 1;
                             *c[*other_item as usize].entry(item).or_insert(0) += 1;
-
                             *c[previous_item as usize].entry(*other_item).or_insert(0) -= 1;
                             *c[*other_item as usize].entry(previous_item).or_insert(0) -= 1;
-
-                            items_to_rescore.insert(*other_item);
                         }
                     }
 
+                    // Register items for rescoring
+                    items_to_rescore.extend(user_history.iter());
+                    items_to_rescore.insert(item);
+
+                    // update cooccurrence matrix sums
                     row_sums_of_c[item_idx] += num_items_in_user_history as u32 - 1;
                     row_sums_of_c[previous_item as usize] -=
                         num_items_in_user_history as u32 - 1;
 
+                    // Replace previous item in user history
                     user_history[k] = item;
 
+                    // Adjust item statistics
                     item_interaction_counts[item_idx] += 1;
                     item_interaction_counts[previous_item as usize] -= 1;
-
-                    items_to_rescore.insert(previous_item);
-                    items_to_rescore.insert(item);
                 }
             }
         }
@@ -275,14 +281,15 @@ where
         }
     });
 
-    let duration_for_batch = to_millis(batch_start.elapsed());
+    let duration = to_millis(start.elapsed());
     println!(
         "{} cooccurrences observed, {}ms training time, {} items rescored",
         num_cooccurrences_observed,
-        duration_for_batch,
+        duration,
         items_to_rescore.len(),
     );
 
+    // Convert heaps guarded with mutex into hashsets
     indicators
         .into_iter()
         .map(|entry| {
@@ -317,13 +324,16 @@ fn rescore(
     for (other_item, num_cooccurrences) in cooccurrence_counts.iter() {
 
         if *other_item != item {
+            // Compute counts of contingency table
             let k11 = u64::from(*num_cooccurrences);
             let k12 = u64::from(row_sums_of_c[item as usize]) - k11;
             let k21 = u64::from(row_sums_of_c[*other_item as usize]) - k11;
             let k22 = num_cooccurrences_observed + k11 - k12 - k21;
 
+            // Compute LLR score
             let llr_score = llr::log_likelihood_ratio(k11, k12, k21, k22, logarithms_table);
 
+            // Update heap holding top-n scored items for this item
             let scored_item = ScoredItem { item: *other_item, score: llr_score };
 
             if indicators_for_item.len() < n {
