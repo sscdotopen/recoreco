@@ -32,7 +32,7 @@
 
 extern crate rand;
 extern crate fnv;
-extern crate scoped_pool;
+extern crate rayon;
 
 #[macro_use]
 extern crate serde_derive;
@@ -40,12 +40,11 @@ extern crate serde_derive;
 extern crate serde_json;
 
 use std::collections::BinaryHeap;
-use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
 use rand::Rng;
 use fnv::FnvHashSet;
-use scoped_pool::Pool;
+use rayon::prelude::*;
 
 mod llr;
 pub mod io;
@@ -62,7 +61,6 @@ use stats::DataDictionary;
 ///
 /// * `interactions` - the observed interactions
 /// * `data_dict` - a data dictionary which maps string to integer identifiers
-/// * `pool_size`  - the number of CPUs to use for the computation
 /// * `num_indicators_per_item` - the number of highly associated items to compute per item (use 10 as default)
 /// * `f_max` - the maximum number of interactions to account for per user (use 500 as default)
 /// * `k_max` - The maximum number of interactions to account for per item (use 500 as default)
@@ -110,7 +108,6 @@ use stats::DataDictionary;
 /// let indicated_items = indicators(
 ///     interactions.into_iter(),
 ///     &data_dict,
-///     2,
 ///     10,
 ///     500,
 ///     500
@@ -135,7 +132,6 @@ use stats::DataDictionary;
 pub fn indicators<T>(
     interactions: T,
     data_dict: &DataDictionary,
-    pool_size: usize,
     num_indicators_per_item: usize,
     f_max: u32,
     k_max: u32
@@ -146,8 +142,6 @@ where
 
     let num_items = data_dict.num_items();
     let num_users = data_dict.num_users();
-
-    let pool = Pool::new(pool_size);
 
     let max_cooccurrences = (f_max * f_max) as usize;
 
@@ -163,11 +157,6 @@ where
     // Cooccurrence matrix C
     let mut c: SparseMatrix = types::new_sparse_matrix(num_items);
     let mut row_sums_of_c = types::new_dense_vector(num_items);
-
-    // Indicator matrix I
-    let indicators: Vec<Mutex<BinaryHeap<ScoredItem>>> = (0..num_items)
-        .map(|_| Mutex::new(BinaryHeap::with_capacity(num_indicators_per_item)))
-        .collect();
 
     let mut num_cooccurrences_observed: u64 = 0;
 
@@ -259,27 +248,19 @@ where
         }
     }
 
-    pool.scoped(|scope| {
-        for item in &items_to_rescore {
-
-            let row = &c[*item as usize];
-            let indicators_for_item = &indicators[*item as usize];
-            let reference_to_row_sums_of_c = &row_sums_of_c;
-            let reference_to_pre_computed_logarithms = &precomputed_logarithms;
-
-            scope.execute(move || {
-                rescore(
-                    *item,
-                    row,
-                    reference_to_row_sums_of_c,
-                    num_cooccurrences_observed,
-                    indicators_for_item,
-                    num_indicators_per_item,
-                    reference_to_pre_computed_logarithms,
-                )
-            });
-        }
-    });
+    let indicators = items_to_rescore
+        .par_iter()
+        .map(|item| {
+            rescore(
+                *item,
+                &c[*item as usize],
+                &row_sums_of_c,
+                num_cooccurrences_observed,
+                num_indicators_per_item,
+                &precomputed_logarithms,
+            )
+        })
+        .collect();
 
     let duration = to_millis(start.elapsed());
     println!(
@@ -289,20 +270,7 @@ where
         items_to_rescore.len(),
     );
 
-    // Convert heaps guarded with mutex into hashsets
     indicators
-        .into_iter()
-        .map(|entry| {
-            let mut heap = entry.lock().unwrap();
-
-            let items: FnvHashSet<u32> = heap
-                .drain()
-                .map(|scored_item| scored_item.item)
-                .collect(); // Checked that size_hint() gives correct bounds
-
-            items
-        })
-        .collect()
 }
 
 fn to_millis(duration: Duration) -> u64 {
@@ -314,36 +282,49 @@ fn rescore(
     cooccurrence_counts: &SparseVector,
     row_sums_of_c: &[u32],
     num_cooccurrences_observed: u64,
-    indicators: &Mutex<BinaryHeap<ScoredItem>>,
     n: usize,
     logarithms_table: &[f64],
-) {
+) -> FnvHashSet<u32> {
 
-    let mut indicators_for_item = indicators.lock().unwrap();
+    // We can skip the scoring if we have seen less than n items
+    if cooccurrence_counts.len() <= n {
+        cooccurrence_counts
+            .keys()
+            .cloned()
+            .collect::<FnvHashSet<_>>()
+    } else {
+        let mut top_indicators: BinaryHeap<ScoredItem> = BinaryHeap::with_capacity(n);
 
-    for (other_item, num_cooccurrences) in cooccurrence_counts.iter() {
+        for (other_item, num_cooccurrences) in cooccurrence_counts.iter() {
+            if *other_item != item {
+                // Compute counts of contingency table
+                let k11 = u64::from(*num_cooccurrences);
+                let k12 = u64::from(row_sums_of_c[item as usize]) - k11;
+                let k21 = u64::from(row_sums_of_c[*other_item as usize]) - k11;
+                let k22 = num_cooccurrences_observed + k11 - k12 - k21;
 
-        if *other_item != item {
-            // Compute counts of contingency table
-            let k11 = u64::from(*num_cooccurrences);
-            let k12 = u64::from(row_sums_of_c[item as usize]) - k11;
-            let k21 = u64::from(row_sums_of_c[*other_item as usize]) - k11;
-            let k22 = num_cooccurrences_observed + k11 - k12 - k21;
+                // Compute LLR score
+                let llr_score = llr::log_likelihood_ratio(k11, k12, k21, k22, logarithms_table);
 
-            // Compute LLR score
-            let llr_score = llr::log_likelihood_ratio(k11, k12, k21, k22, logarithms_table);
+                // Update heap holding top-n scored items for this item
+                let scored_item = ScoredItem { item: *other_item, score: llr_score };
 
-            // Update heap holding top-n scored items for this item
-            let scored_item = ScoredItem { item: *other_item, score: llr_score };
-
-            if indicators_for_item.len() < n {
-                indicators_for_item.push(scored_item);
-            } else {
-                let mut top = indicators_for_item.peek_mut().unwrap();
-                if scored_item < *top {
-                    *top = scored_item;
+                if top_indicators.len() < n {
+                    top_indicators.push(scored_item);
+                } else {
+                    let mut top = top_indicators.peek_mut().unwrap();
+                    if scored_item < *top {
+                        *top = scored_item;
+                    }
                 }
             }
         }
+
+        let indicators_for_item: FnvHashSet<u32> = top_indicators
+            .drain()
+            .map(|scored_item| scored_item.item)
+            .collect();
+
+        indicators_for_item
     }
 }

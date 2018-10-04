@@ -18,7 +18,6 @@
 
 extern crate csv;
 extern crate recoreco;
-extern crate num_cpus;
 extern crate getopts;
 
 use std::error::Error;
@@ -122,7 +121,6 @@ fn compute_indicators(
     let indicators = recoreco::indicators(
         interactions,
         &data_dict,
-        num_cpus::get(),
         n,
         F_MAX,
         K_MAX
