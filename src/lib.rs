@@ -248,6 +248,7 @@ where
         }
     }
 
+    // Compute top-n indicators per item in parallel
     let indicators = items_to_rescore
         .par_iter()
         .map(|item| {
@@ -293,6 +294,7 @@ fn rescore(
             .cloned()
             .collect::<FnvHashSet<_>>()
     } else {
+        // We'll use a heap to keep track of the current top-n scored items
         let mut top_indicators: BinaryHeap<ScoredItem> = BinaryHeap::with_capacity(n);
 
         for (other_item, num_cooccurrences) in cooccurrence_counts.iter() {
