@@ -143,10 +143,10 @@ where
     let num_items = data_dict.num_items();
     let num_users = data_dict.num_users();
 
-    let max_cooccurrences = (f_max * f_max) as usize;
+    let max_sum_of_cooccurrences_per_item = (f_max * k_max) as usize;
 
     // Precompute most logarithms
-    let precomputed_logarithms: Vec<f64> = llr::logarithms_table(max_cooccurrences);
+    let precomputed_logarithms: Vec<f64> = llr::logarithms_table(max_sum_of_cooccurrences_per_item);
 
     // Downsampled history matrix A
     let mut user_non_sampled_interaction_counts = types::new_dense_vector(num_users);
