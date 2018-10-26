@@ -81,7 +81,6 @@ pub fn interactions_from_csv<'a, R>(
                 None
             }
         })
-        .into_iter()
 }
 
 /// Struct used for JSON serialization of computed indicators. Field names will be used in JSON.

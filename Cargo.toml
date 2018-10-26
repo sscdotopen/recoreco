@@ -1,7 +1,7 @@
 [package]
 name = "recoreco"
 description = "Fast item-to-item recommendations on the command line."
-version = "0.1.8"
+version = "0.1.9"
 authors = ["Sebastian Schelter <ssc [at] apache [dot] org>"]
 license = "GPL-3.0-or-later"
 homepage = "https://github.com/sscdotopen/recoreco"
