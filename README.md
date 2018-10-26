@@ -137,4 +137,4 @@ And finally, we look for artists similar to [Paco de Lucia](https://en.wikipedia
 
 ## Programmatic Usage
 
-**recoreco** can also be included as a library in your rust program. We provide a [basic example](src/usage_tests.rs) on how to do this. Be sure to checkout the [documentation](https://docs.rs/recoreco/0.1.6/recoreco/) for further details.
+**recoreco** can also be included as a library in your rust program. We provide a [basic example](src/usage_tests.rs) on how to do this. Be sure to checkout the [documentation](https://docs.rs/recoreco/latest/recoreco/) for further details.
