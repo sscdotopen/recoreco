@@ -94,7 +94,7 @@ fn compute_indicators(
     interactions_path: &str,
     n: usize,
     indicators_path: Option<String>,
-) -> Result<(), Box<Error>> {
+) -> Result<(), Box<dyn Error>> {
 
     // We use constants here for the moment, these should result in a good runtime/quality ratio.
     const F_MAX: u32 = 500;

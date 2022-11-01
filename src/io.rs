@@ -97,7 +97,7 @@ struct Indicators<'a> {
 /// `{ "for_item": "michael jackson", "indicated_items": ["justin timberlake", "queen"] }`
 ///
 pub fn write_indicators(
-    indicators: &[FnvHashSet<u32>],
+    indicators: &[(u32, FnvHashSet<u32>)],
     renaming: &Renaming,
     indicators_path: Option<String>,
 ) -> io::Result<()> {
@@ -107,13 +107,13 @@ pub fn write_indicators(
         _ => boxed_writer(stdout()),
     };
 
-    for (item_index, indicated_item_indices) in indicators.into_iter().enumerate() {
+    for (_index, indicator_tuple) in indicators.into_iter().enumerate() {
 
-        let for_item = renaming.item_name(item_index as u32);
+        let for_item = renaming.item_name(indicator_tuple.0 as u32);
 
-        let indicated_items: FnvHashSet<&str> = indicated_item_indices
+        let indicated_items: FnvHashSet<&str> = (&indicator_tuple.1)
             .into_iter()
-            .map(|item_index| renaming.item_name(*item_index as u32))
+            .map(|item_index| renaming.item_name(*item_index))
             .collect();
 
         let indicators_as_json = json!(
@@ -130,7 +130,7 @@ pub fn write_indicators(
 
 fn boxed_writer<T>(
     destination: T
-) -> Box<Write>
+) -> Box<dyn Write>
 where
     T: Write + 'static
 {
