@@ -54,7 +54,7 @@ pub mod stats;
 mod usage_tests;
 
 use llr::ScoredItem;
-use types::{SparseVector, SparseMatrix, SparseBinaryMatrix};
+use types::{SparseVector, SparseMatrix, IndicatorSet};
 use stats::DataDictionary;
 
 /// Compute item indicators from a stream of interactions.
@@ -135,7 +135,7 @@ pub fn indicators<T>(
     num_indicators_per_item: usize,
     f_max: u32,
     k_max: u32
-) -> SparseBinaryMatrix
+) -> IndicatorSet
 where
     T: Iterator<Item = (String, String)>
 {
@@ -181,7 +181,7 @@ where
         if item_interaction_counts[item_idx] < f_max {
 
             // Retrieve current history sample for interacting user
-            let mut user_history = &mut samples_of_a[user_idx];
+            let user_history = &mut samples_of_a[user_idx];
             let num_items_in_user_history = user_history.len();
 
             // Check whether we have seen enough interactions for this user yet
@@ -259,9 +259,10 @@ where
                 num_cooccurrences_observed,
                 num_indicators_per_item,
                 &precomputed_logarithms,
+                //&renaming
             )
         })
-        .collect();
+        .collect::<Vec<(u32, FnvHashSet<u32>)>>();
 
     let duration = to_millis(start.elapsed());
     println!(
@@ -285,20 +286,21 @@ fn rescore(
     num_cooccurrences_observed: u64,
     n: usize,
     logarithms_table: &[f64],
-) -> FnvHashSet<u32> {
+) -> (u32, FnvHashSet<u32>) {
 
     // We can skip the scoring if we have seen less than n items
     if cooccurrence_counts.len() <= n {
-        cooccurrence_counts
+        (item, cooccurrence_counts
             .keys()
             .cloned()
-            .collect::<FnvHashSet<_>>()
+            .collect::<FnvHashSet<_>>())
     } else {
         // We'll use a heap to keep track of the current top-n scored items
         let mut top_indicators: BinaryHeap<ScoredItem> = BinaryHeap::with_capacity(n);
 
         for (other_item, num_cooccurrences) in cooccurrence_counts.iter() {
             if *other_item != item {
+
                 // Compute counts of contingency table
                 let k11 = u64::from(*num_cooccurrences);
                 let k12 = u64::from(row_sums_of_c[item as usize]) - k11;
@@ -327,6 +329,6 @@ fn rescore(
             .map(|scored_item| scored_item.item)
             .collect();
 
-        indicators_for_item
+        (item, indicators_for_item)
     }
 }
